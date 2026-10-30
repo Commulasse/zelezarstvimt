@@ -3,6 +3,22 @@ import { DEFAULTS, DAYS, pragueNow, onSale, priceFmt, dateCz, esc } from './defa
 const $ = id => document.getElementById(id);
 const PH = '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3"><path d="M40 8a14 14 0 0 0-13 19L9 45a5 5 0 0 0 7 7l18-18a14 14 0 0 0 19-13l-8 8-8-2-2-8 8-8a14 14 0 0 0-3-3z"/></svg>';
 const imgUrl = k => '/api/img/' + encodeURIComponent(k);
+
+// ikony podle kategorie pro zboží bez fotky
+const svg = d => `<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+const ICONS = [
+  [/elektrick|vrta|brus/i, svg('<rect x="8" y="16" width="34" height="16" rx="4"/><path d="M42 21h10M42 27h6M52 24h6"/><path d="M18 32l-4 22h12l2-22"/><path d="M14 46h12"/>')],
+  [/spojov|šroub|vrut/i, svg('<path d="M24 8h16l-2 8H26z"/><path d="M28 16v34l4 8 4-8V16"/><path d="M28 24l8-3M28 31l8-3M28 38l8-3M28 45l8-3"/>')],
+  [/kování|zámk/i, svg('<rect x="14" y="28" width="36" height="28" rx="4"/><path d="M22 28v-8a10 10 0 0 1 20 0v8"/><circle cx="32" cy="40" r="3"/><path d="M32 43v5"/>')],
+  [/chemie|silikon|pěn/i, svg('<path d="M20 22h24v34H20z"/><path d="M26 22v-6h12v6M32 16V6l6-2"/><path d="M20 34h24"/>')],
+  [/zahrad/i, svg('<path d="M32 6v30"/><path d="M24 36h16l-2 16-6 6-6-6z"/><path d="M26 6h12"/>')],
+  [/domác|nádob/i, svg('<path d="M10 26h44v6a20 20 0 0 1-20 20h-4a20 20 0 0 1-20-20z"/><path d="M6 26h52M24 26v-6h16v6"/>')],
+  [/kamn|kotl|kouř/i, svg('<path d="M32 58c10 0 16-7 16-16 0-10-8-14-10-24-6 6-6 12-6 12s-4-4-4-10c-8 8-12 14-12 22 0 9 6 16 16 16z"/>')],
+  [/elektromat|elektro/i, svg('<path d="M22 6v12M42 6v12"/><path d="M14 18h36v10a18 18 0 0 1-36 0z"/><path d="M32 46v12"/>')],
+  [/instal|vod/i, svg('<path d="M8 24h20v-8h16v8h12v14H44v-6H28v6H8z"/><path d="M50 38v8M50 52v2"/>')],
+  [/ruční|nářadí/i, svg('<path d="M10 18l16-10 8 8-16 10z"/><path d="M26 20l26 30-6 6-26-30"/>')],
+];
+const iconFor = cat => (ICONS.find(([re]) => re.test(cat || '')) || [0, PH])[1];
 let PRODUCTS = {};
 
 /* ---------- kontaktní údaje a otevírací doba ---------- */
@@ -47,7 +63,7 @@ function renderSettings(s) {
 function card(p, today) {
   const sale = onSale(p, today);
   const pct = sale && p.price > 0 ? '−' + Math.round(100 - (p.sale_price / p.price) * 100) + ' %' : '';
-  const img = p.image ? `<img src="${imgUrl(p.image)}" alt="${esc(p.name)}" loading="lazy">` : PH;
+  const img = p.image ? `<img src="${imgUrl(p.image)}" alt="${esc(p.name)}" loading="lazy">` : iconFor(p.category);
   const unit = p.unit ? `<span class="unit">/ ${esc(p.unit)}</span>` : '';
   let prices;
   if (sale) {
@@ -110,7 +126,7 @@ document.addEventListener('click', ev => {
   if (!c) return;
   const p = PRODUCTS[c.dataset.id]; if (!p) return;
   const sale = onSale(p);
-  $('dImg').innerHTML = p.image ? `<img src="${imgUrl(p.image)}" alt="">` : PH;
+  $('dImg').innerHTML = p.image ? `<img src="${imgUrl(p.image)}" alt="">` : iconFor(p.category);
   $('dCat').textContent = p.category || '';
   $('dName').textContent = p.name;
   $('dDesc').textContent = p.description || '';

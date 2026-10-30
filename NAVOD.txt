@@ -48,6 +48,17 @@ ADMINISTRACE
 - Zboží: akční zboží / zboží do katalogu, fotka (i přímo z mobilu – sama se zmenší),
   běžná a akční cena, platnost akce od–do. Po skončení akce zmizí zboží z akcí samo.
   Rychlé akce: Ukončit akci, Skrýt/Zobrazit, Smazat.
+- Hromadné úpravy: zaškrtněte víc zboží (nebo „Vybrat vše“) → sleva v % s platností,
+  ukončit akci, skrýt/zobrazit, přesunout do kategorie, smazat.
+- Excel (záložka „Excel“):
+  · Nahrát z Excelu – XLSX/XLS/CSV, před uložením ukáže náhled a chyby.
+    Zboží se páruje podle Kódu (bez kódu podle přesného názvu) – existující se přepíše,
+    nové se přidá. Fotky zůstávají.
+  · Stáhnout katalog – aktuální zboží do XLSX; upravíte a nahrajete zpět.
+  · Hromadně nahrát fotky – soubory pojmenované podle kódu (EN-101.jpg) se přiřadí samy.
+  · Stáhnout vzor (prázdný) – public/admin/vzor-import.xlsx
+  · Načíst ukázkový sortiment – 26 položek z public/admin/vzor-sortiment.xlsx
+    (vymyšlené ceny, jen na vyzkoušení; pak je smažete přes „Vybrat vše“ → Smazat).
 - Nastavení: žlutý pruh s oznámením, otevírací doba, kategorie, kontakty.
 - Změna hesla: změňte proměnnou ADMIN_PASSWORD v Netlify a spusťte nový deploy.
   Tím se zároveň odhlásí všechna zařízení. Přihlášení jinak vydrží 30 dní.

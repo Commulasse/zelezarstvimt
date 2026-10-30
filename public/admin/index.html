@@ -65,6 +65,35 @@
   .hrow{display:grid;grid-template-columns:90px 1fr;gap:10px;align-items:center;margin-bottom:8px}
   .muted{color:var(--ink-3);font-size:14px}
   .loading{padding:40px;text-align:center;color:var(--ink-3)}
+  .item{grid-template-columns:auto 64px 1fr auto}
+  .item.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+  .pick{display:grid;place-items:center;padding:4px;cursor:pointer}
+  .pick input,#selAll{width:20px;height:20px;accent-color:var(--accent)}
+  @media (max-width:700px){.item{grid-template-columns:auto 56px 1fr}}
+  .bulk{display:flex;gap:10px 14px;align-items:center;flex-wrap:wrap;padding:10px 12px;margin-bottom:8px;border-radius:8px;border:1px dashed var(--line);font-size:15px}
+  .bulk.on{background:var(--steel);color:#f3efe6;border:0;position:sticky;top:8px;z-index:5}
+  .bulk.on .muted{color:#bbb}
+  .bulk .grp{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .bulk input[type=text],.bulk input[type=date]{padding:6px 8px;font-size:14px;width:auto}
+  .bulk.on .btn-line{background:transparent;color:#f3efe6;border-color:#5a5f66}
+  .imp-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media (max-width:800px){.imp-grid{grid-template-columns:1fr}}
+  .drop{display:block;border:2px dashed var(--line);border-radius:8px;padding:30px 20px;text-align:center;cursor:pointer;background:#fff;line-height:1.7}
+  .drop:hover,.drop.over{border-color:var(--accent);background:#fff6f2}
+  .tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:6px}
+  table.pv{width:100%;border-collapse:collapse;font-size:14.5px;background:#fff}
+  table.pv th{text-align:left;font:700 13px/1 var(--head);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);padding:10px;border-bottom:1px solid var(--line);background:var(--paper)}
+  table.pv td{padding:9px 10px;border-top:1px solid #eee8dd;vertical-align:top}
+  table.pv .r{text-align:right;white-space:nowrap}
+  table.pv tr.bad td{background:#fdf0eb}
+  .errtxt{color:#8c2a0b;font-size:13px;font-weight:600;margin-top:3px}
+  .pill.ok{background:#dff1e4;color:#1f5c34}
+  .pill.err{background:#fbe0d6;color:#8c2a0b}
+  table.pv .pill{margin:0}
+  .photos{margin-top:12px;display:flex;flex-direction:column;gap:4px;font-size:14.5px}
+  .ph{display:grid;grid-template-columns:1fr 1.3fr 140px;gap:10px;padding:6px 10px;background:#fff;border-radius:5px}
+  .ph.miss{color:var(--ink-3)}
+  .ph .st{text-align:right;font-weight:600}
 </style>
 </head>
 <body>

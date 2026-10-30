@@ -1,7 +1,8 @@
 import { DAYS, pragueNow, onSale, priceFmt, dateCz, esc } from './defaults.js';
+import { parseFile, matchRows, exportXLSX, previewTable } from './admin-import.js';
 
 const app = document.getElementById('app');
-const state = { products: [], settings: null, view: 'list', filter: '', q: '', flash: null };
+const state = { products: [], settings: null, view: 'list', filter: '', q: '', flash: null, sel: new Set(), imp: null, photos: null };
 
 /* ---------- komunikace se serverem ---------- */
 
@@ -69,6 +70,7 @@ function shell(inner) {
   <header class="bar"><div class="wrap">
     <a class="brand" data-go="list" style="text-decoration:none;cursor:pointer">Železářství <b>MT</b></a>
     <a class="t ${v === 'list' ? 'on' : ''}" data-go="list">Zboží</a>
+    <a class="t ${v === 'import' ? 'on' : ''}" data-go="import">Excel</a>
     <a class="t ${v === 'settings' ? 'on' : ''}" data-go="settings">Nastavení</a>
     <a class="t" href="/" target="_blank">Web ↗</a>
     <a class="t" id="logout">Odhlásit</a>
@@ -81,6 +83,7 @@ function shell(inner) {
 function render() {
   if (state.view === 'edit') return renderEdit();
   if (state.view === 'settings') return renderSettings();
+  if (state.view === 'import') return renderImport();
   return renderList();
 }
 
@@ -110,13 +113,19 @@ function renderList() {
     return true;
   });
 
+  // vybrané jen z existujícího zboží
+  for (const id of state.sel) if (!state.products.some(p => p.id === id)) state.sel.delete(id);
+  const nSel = state.sel.size;
+  const allSel = list.length > 0 && list.every(p => state.sel.has(p.id));
+
   const rows = list.map(p => {
     const [st, cls] = saleState(p, today);
-    return `<div class="item ${p.visible ? '' : 'hid'}">
+    return `<div class="item ${p.visible ? '' : 'hid'} ${state.sel.has(p.id) ? 'sel' : ''}">
+      <label class="pick"><input type="checkbox" data-sel="${esc(p.id)}" ${state.sel.has(p.id) ? 'checked' : ''} aria-label="Vybrat"></label>
       <div class="th">${p.image ? `<img src="/api/img/${esc(p.image)}" alt="">` : 'bez foto'}</div>
       <div>
         <b>${esc(p.name)}${st ? ` <span class="pill ${cls}">${esc(st)}</span>` : ''}${p.visible ? '' : ' <span class="pill hidden">Skryto</span>'}</b>
-        <small>${esc(p.category || '')}
+        <small>${p.code ? esc(p.code) + ' · ' : ''}${esc(p.category || '')}
           ${p.sale_price !== null && p.sale_price !== undefined ? ` · <strong style="color:var(--accent-ink)">${priceFmt(p.sale_price)}</strong>` : ''}
           ${p.price ? ' · ' + (p.sale_price !== null && p.sale_price !== undefined ? `<s>${priceFmt(p.price)}</s>` : priceFmt(p.price)) : ''}
         </small>
@@ -146,9 +155,46 @@ function renderList() {
       <input type="search" id="q" value="${esc(state.q)}" placeholder="Hledat…" style="width:200px">
       ${cnt.expired ? `<button class="btn btn-line btn-sm" id="cleanup" title="U zboží s prošlým datem akce zruší akční cenu">Ukončit prošlé akce (${cnt.expired})</button>` : ''}
     </div>
-    ${list.length ? `<div class="items">${rows}</div>`
-      : `<div class="box" style="text-align:center;color:var(--ink-2)">${cnt.all ? 'Nic neodpovídá filtru.' : 'Zatím tu není žádné zboží. Začněte tlačítkem „+ Akční zboží“.'}</div>`}
+    ${list.length ? `
+      <div class="bulk ${nSel ? 'on' : ''}">
+        <label class="check" style="margin:0"><input type="checkbox" id="selAll" ${allSel ? 'checked' : ''}> ${nSel ? `Vybráno: <b>${nSel}</b>` : 'Vybrat vše'}</label>
+        ${nSel ? `
+        <span class="grp">
+          <input type="text" id="bPct" inputmode="decimal" placeholder="%" style="width:64px">
+          <input type="date" id="bFrom" value="${today}" title="Akce od">
+          <input type="date" id="bTo" title="Akce do (prázdné = do odvolání)">
+          <button class="btn btn-accent btn-sm" data-bulk="discount">Dát slevu</button>
+        </span>
+        <span class="grp">
+          <button class="btn btn-line btn-sm" data-bulk="endsale">Ukončit akci</button>
+          <button class="btn btn-line btn-sm" data-bulk="hide">Skrýt</button>
+          <button class="btn btn-line btn-sm" data-bulk="show">Zobrazit</button>
+          <select id="bCat" style="width:auto;padding:6px 8px;font-size:14px"><option value="">Přesunout do kategorie…</option>${state.settings.categories.map(c => `<option>${esc(c)}</option>`).join('')}</select>
+          <button class="btn btn-line btn-sm" style="color:var(--accent-ink)" data-bulk="delete">Smazat</button>
+        </span>` : '<span class="muted">Zaškrtněte zboží a můžete mu najednou dát slevu, ukončit akci, skrýt ho nebo smazat.</span>'}
+      </div>
+      <div class="items">${rows}</div>`
+      : `<div class="box" style="text-align:center;color:var(--ink-2)">${cnt.all ? 'Nic neodpovídá filtru.'
+        : 'Zatím tu není žádné zboží. Přidejte ho tlačítkem „+ Akční zboží“, nebo nahrajte celý katalog z Excelu.<br><br><button class="btn btn-dark" data-go="import">Nahrát z Excelu</button>'}</div>`}
   `);
+  app.querySelectorAll('main [data-go]').forEach(a => a.onclick = () => { state.view = a.dataset.go; render(); });
+
+  // výběr
+  app.querySelectorAll('[data-sel]').forEach(c => c.onchange = () => {
+    c.checked ? state.sel.add(c.dataset.sel) : state.sel.delete(c.dataset.sel); renderList();
+  });
+  const sa = document.getElementById('selAll');
+  if (sa) sa.onchange = () => { list.forEach(p => (sa.checked ? state.sel.add(p.id) : state.sel.delete(p.id))); renderList(); };
+  const bc = document.getElementById('bCat');
+  if (bc) bc.onchange = () => bc.value && bulk('category', { category: bc.value }, bc);
+  app.querySelectorAll('[data-bulk]').forEach(b => b.onclick = () => {
+    const op = b.dataset.bulk;
+    if (op === 'discount') {
+      return bulk(op, { percent: document.getElementById('bPct').value, sale_from: document.getElementById('bFrom').value, sale_to: document.getElementById('bTo').value }, b);
+    }
+    if (op === 'delete' && !confirm(`Opravdu smazat ${nSel} položek?`)) return;
+    bulk(op, {}, b);
+  });
 
   app.querySelectorAll('[data-new]').forEach(b => b.onclick = () => { state.view = 'edit'; state.edit = { isNew: true, sale: !!b.dataset.new }; render(); });
   app.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { state.filter = b.dataset.f; render(); });
@@ -173,6 +219,139 @@ function renderList() {
       render();
     }, b);
   });
+}
+
+function bulk(op, extra, btn) {
+  const n = state.sel.size;
+  return run(async () => {
+    const r = await api('/admin/bulk', { ids: [...state.sel], op, ...extra });
+    await reload();
+    const msg = {
+      discount: `Sleva nastavena u ${r.count} položek.` + (r.skipped ? ` ${r.skipped} položek nemá běžnou cenu, slevu jsem jim nedal.` : ''),
+      endsale: `Akce ukončena u ${r.count} položek.`,
+      hide: `Skryto ${r.count} položek.`, show: `Zobrazeno ${r.count} položek.`,
+      category: `Přesunuto ${r.count} položek.`, delete: `Smazáno ${n} položek.`,
+    }[op];
+    if (op === 'delete') state.sel.clear();
+    flash(msg); render();
+  }, btn);
+}
+
+/* ---------- import / export ---------- */
+
+function renderImport() {
+  const imp = state.imp;
+  const ph = state.photos;
+  let inner;
+
+  if (imp?.rows) {
+    const bad = imp.rows.filter(r => r.errors.length).length;
+    const nNew = imp.rows.filter(r => !r.errors.length && !r.existing).length;
+    const nUpd = imp.rows.filter(r => !r.errors.length && r.existing).length;
+    const nSale = imp.rows.filter(r => r.is_sale).length;
+    inner = `
+      <div class="box">
+        <div class="tools" style="margin-bottom:10px">
+          <div><b style="font-size:18px">${esc(imp.fileName)}</b><br>
+          <span class="muted">${imp.rows.length} řádků · nové ${nNew} · úpravy ${nUpd} · v akci ${nSale}${bad ? ` · <b style="color:var(--accent-ink)">chyby ${bad}</b>` : ''}</span></div>
+          <span class="sp"></span>
+          <button class="btn btn-line" id="impCancel">Zrušit</button>
+          <button class="btn btn-accent" id="impGo" ${bad ? 'disabled title="Nejdřív opravte chyby v souboru"' : ''}>Nahrát ${nNew + nUpd} položek</button>
+        </div>
+        ${bad ? '<div class="msg err" style="margin:0 0 12px">Některé řádky mají chybu (červeně). Opravte je v Excelu a soubor nahrajte znovu – nic se zatím neuložilo.</div>'
+          : `<p class="muted" style="margin:0 0 12px">Zkontrolujte náhled. Zboží se stejným kódem (nebo bez kódu se stejným názvem) se přepíše, ostatní se přidá. Fotky zůstávají.</p>`}
+        ${previewTable(imp.rows)}
+      </div>`;
+  } else {
+    inner = `
+      <div class="imp-grid">
+        <div class="box">
+          <legend>Nahrát z Excelu</legend>
+          <label class="drop" id="drop">
+            <input type="file" id="xf" accept=".xlsx,.xls,.csv,.ods" hidden>
+            <b>Vyberte soubor</b> nebo ho sem přetáhněte<br><span class="muted">XLSX, XLS, CSV</span>
+          </label>
+          <p class="muted">Sloupce: <b>Kód</b>, <b>Název</b>, Kategorie, Jednotka, Běžná cena, Akční cena, Akce od, Akce do, Popis, Zobrazit.
+          Povinný je jen Název. Když vyplníte Akční cenu, zboží půjde do akcí.</p>
+          <p style="display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 0">
+            <a class="btn btn-line btn-sm" href="/admin/vzor-import.xlsx" download>Stáhnout vzor (prázdný)</a>
+            <button class="btn btn-line btn-sm" id="demo">Načíst ukázkový sortiment</button>
+          </p>
+        </div>
+        <div class="box">
+          <legend>Stáhnout do Excelu</legend>
+          <p class="muted" style="margin-top:0">Celý katalog jako XLSX. Upravte ceny nebo akce v Excelu a nahrajte ho zpátky – zboží se spáruje podle kódu.</p>
+          <button class="btn btn-dark" id="exp" ${state.products.length ? '' : 'disabled'}>Stáhnout katalog (${state.products.length})</button>
+        </div>
+        <div class="box" style="grid-column:1/-1">
+          <legend>Hromadně nahrát fotky</legend>
+          <p class="muted" style="margin-top:0">Pojmenujte fotky podle <b>kódu</b> zboží (např. <code>V-440.jpg</code>) nebo přesně podle názvu a vyberte jich víc najednou. Přiřadí se samy.</p>
+          <input type="file" id="pf" accept="image/*" multiple>
+          ${ph ? `<div class="photos">${ph.map(x => `
+            <div class="ph ${x.p ? '' : 'miss'}"><span>${esc(x.file.name)}</span>
+            <span>${x.p ? '→ ' + esc(x.p.name) : 'nenalezeno'}</span>
+            <span class="st">${x.status || ''}</span></div>`).join('')}</div>
+            <p style="margin:12px 0 0"><button class="btn btn-accent" id="phGo" ${ph.some(x => x.p && !x.status) ? '' : 'disabled'}>Nahrát ${ph.filter(x => x.p && !x.status).length} fotek</button></p>` : ''}
+        </div>
+      </div>`;
+  }
+
+  shell(`<h1>Excel a hromadné nahrávání</h1>${inner}`);
+
+  const load = async (file, name) => {
+    try {
+      const rows = matchRows(await parseFile(file, state.settings.categories), state.products);
+      state.imp = { rows, fileName: name || file.name }; render();
+    } catch (e) { flash(e.message, 'err'); state.imp = null; render(); }
+  };
+  const xf = document.getElementById('xf');
+  if (xf) {
+    xf.onchange = () => xf.files[0] && load(xf.files[0]);
+    const drop = document.getElementById('drop');
+    drop.ondragover = e => { e.preventDefault(); drop.classList.add('over'); };
+    drop.ondragleave = () => drop.classList.remove('over');
+    drop.ondrop = e => { e.preventDefault(); drop.classList.remove('over'); e.dataTransfer.files[0] && load(e.dataTransfer.files[0]); };
+    document.getElementById('demo').onclick = async () => {
+      const r = await fetch('/admin/vzor-sortiment.xlsx');
+      load(new File([await r.blob()], 'vzor-sortiment.xlsx'), 'Ukázkový sortiment (vzor-sortiment.xlsx)');
+    };
+    document.getElementById('exp').onclick = () => exportXLSX(state.products).catch(e => { flash(e.message, 'err'); render(); });
+  }
+  const go = document.getElementById('impGo');
+  if (go) {
+    document.getElementById('impCancel').onclick = () => { state.imp = null; render(); };
+    go.onclick = () => run(async () => {
+      const rows = imp.rows.map(({ errors, existing, newCategory, ...r }) => r);
+      const r = await api('/admin/import', { rows });
+      await reload(); state.imp = null;
+      flash(`Hotovo: přidáno ${r.added}, upraveno ${r.updated} položek.` + (r.newCategories?.length ? ` Nové kategorie: ${r.newCategories.join(', ')}.` : ''));
+      state.view = 'list'; state.filter = ''; render();
+    }, go);
+  }
+
+  // hromadné fotky
+  const pf = document.getElementById('pf');
+  if (pf) pf.onchange = () => {
+    const byCode = new Map(state.products.filter(p => p.code).map(p => [p.code.toLowerCase(), p]));
+    const byName = new Map(state.products.map(p => [p.name.toLowerCase(), p]));
+    state.photos = [...pf.files].map(file => {
+      const base = file.name.replace(/\.[^.]+$/, '').trim().toLowerCase();
+      return { file, p: byCode.get(base) || byName.get(base) || null };
+    });
+    render();
+  };
+  const phGo = document.getElementById('phGo');
+  if (phGo) phGo.onclick = async () => {
+    phGo.disabled = true;
+    let ok = 0;
+    for (const x of state.photos.filter(x => x.p && !x.status)) {
+      x.status = 'nahrávám…'; render();
+      try { await api('/admin/image', { id: x.p.id, image: await resizeImage(x.file) }); x.status = '✓'; ok++; }
+      catch (e) { if (e.status === 401) return showLogin('Přihlášení vypršelo.'); x.status = '✗ ' + e.message; }
+    }
+    await reload();
+    flash(`Nahráno ${ok} fotek.`); render();
+  };
 }
 
 /* ---------- úprava zboží ---------- */
@@ -217,7 +396,8 @@ function renderEdit() {
       <div class="edit-grid">
         <div>
           <label class="f"><span>Název zboží *</span><input type="text" name="name" value="${esc(p.name)}" required maxlength="140" placeholder="např. Aku vrtačka Narex 18 V"></label>
-          <div class="cols">
+          <div class="cols3">
+            <label class="f"><span>Kód (nepovinné)</span><input type="text" name="code" value="${esc(p.code || '')}" maxlength="40" placeholder="např. V-440"></label>
             <label class="f"><span>Kategorie</span><select name="category">${cats.map(c => `<option ${c === p.category ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select></label>
             <label class="f"><span>Jednotka (ks, m, bal…)</span><input type="text" name="unit" value="${esc(p.unit)}" maxlength="20"></label>
           </div>
@@ -265,7 +445,7 @@ function renderEdit() {
     const again = e.submitter?.dataset.again;
     const body = {
       id: found ? found.id : '',
-      name: f.name.value, category: f.category.value, unit: f.unit.value, description: f.description.value,
+      code: f.code.value, name: f.name.value, category: f.category.value, unit: f.unit.value, description: f.description.value,
       price: f.price.value, is_sale: f.is_sale.checked, sale_price: f.sale_price.value,
       sale_from: f.sale_from.value, sale_to: f.sale_to.value, visible: f.visible.checked,
       remove_image: !!f.remove_image?.checked, image,

@@ -60,6 +60,29 @@ function num(v) {
 const date = v => (/^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) ? String(v) : '');
 const str = (v, max) => String(v ?? '').trim().slice(0, max);
 
+// převede vstup (formulář nebo řádek z Excelu) na data zboží; vyhodí chybu s českou hláškou
+function applyFields(p, b) {
+  p.code = str(b.code, 40);
+  p.name = str(b.name, 140);
+  p.category = str(b.category, 80);
+  p.description = str(b.description, 2000);
+  p.unit = str(b.unit, 20);
+  p.price = num(b.price);
+  p.visible = b.visible === undefined ? true : !!b.visible;
+  if (!p.name) throw new Error('Vyplňte název zboží.');
+  if (b.is_sale) {
+    p.sale_price = num(b.sale_price);
+    p.sale_from = date(b.sale_from);
+    p.sale_to = date(b.sale_to);
+    if (p.sale_price === null) throw new Error('U akčního zboží vyplňte akční cenu.');
+  } else {
+    p.sale_price = null; p.sale_from = ''; p.sale_to = '';
+  }
+  return p;
+}
+const newProduct = () => ({ id: randomBytes(5).toString('hex'), created: new Date().toISOString(), image: '' });
+const endSale = p => Object.assign(p, { sale_price: null, sale_from: '', sale_to: '' });
+
 async function saveImage(dataUrl) {
   const m = /^data:image\/(jpeg|png|webp);base64,(.+)$/.exec(dataUrl || '');
   if (!m) throw new Error('Neplatný obrázek.');
@@ -128,25 +151,11 @@ export default async (req) => {
 
     switch (path) {
       case '/admin/save': {
-        const now = new Date().toISOString();
         const isNew = idx < 0;
-        const p = isNew ? { id: randomBytes(5).toString('hex'), created: now, image: '' } : { ...products[idx] };
-        p.name = str(body.name, 140);
-        p.category = str(body.category, 80);
-        p.description = str(body.description, 2000);
-        p.unit = str(body.unit, 20);
-        p.price = num(body.price);
-        p.visible = !!body.visible;
-        p.updated = now;
-        if (!p.name) return fail('Vyplňte název zboží.');
-        if (body.is_sale) {
-          p.sale_price = num(body.sale_price);
-          p.sale_from = date(body.sale_from);
-          p.sale_to = date(body.sale_to);
-          if (p.sale_price === null) return fail('U akčního zboží vyplňte akční cenu.');
-        } else {
-          p.sale_price = null; p.sale_from = ''; p.sale_to = '';
-        }
+        const p = isNew ? newProduct() : { ...products[idx] };
+        try { applyFields(p, body); } catch (e) { return fail(e.message); }
+        if (p.code && products.some(x => x.code === p.code && x.id !== p.id)) return fail(`Kód „${p.code}“ už má jiné zboží.`);
+        p.updated = new Date().toISOString();
         if (body.remove_image && p.image) { await deleteImage(p.image); p.image = ''; }
         if (body.image) {
           const key = await saveImage(body.image);
@@ -156,6 +165,81 @@ export default async (req) => {
         if (isNew) products.push(p); else products[idx] = p;
         await store().setJSON('products', products);
         return json({ ok: true, product: p });
+      }
+
+      // hromadný import z Excelu: párování podle kódu, jinak podle názvu
+      case '/admin/import': {
+        const rows = Array.isArray(body.rows) ? body.rows : [];
+        if (!rows.length) return fail('Soubor neobsahuje žádné zboží.');
+        if (rows.length > 2000) return fail('Najednou lze nahrát nejvýš 2000 řádků.');
+        const now = new Date().toISOString();
+        const byCode = new Map(products.filter(p => p.code).map(p => [p.code.toLowerCase(), p]));
+        const byName = new Map(products.map(p => [p.name.toLowerCase(), p]));
+        const errors = [];
+        let added = 0, updated = 0;
+        rows.forEach((r, i) => {
+          const code = str(r.code, 40).toLowerCase();
+          const name = str(r.name, 140).toLowerCase();
+          const existing = (code && byCode.get(code)) || (!code && byName.get(name)) || null;
+          const p = existing ? { ...existing } : newProduct();
+          try { applyFields(p, r); } catch (e) { errors.push(`Řádek ${r.row || i + 2}: ${e.message}`); return; }
+          p.updated = now;
+          if (existing) { products[products.indexOf(existing)] = p; updated++; }
+          else { products.push(p); added++; }
+          if (p.code) byCode.set(p.code.toLowerCase(), p);
+          byName.set(p.name.toLowerCase(), p);
+        });
+        if (errors.length) return fail('Nic nebylo uloženo. Opravte v souboru:\n' + errors.slice(0, 15).join('\n') + (errors.length > 15 ? `\n… a dalších ${errors.length - 15}` : ''));
+        await store().setJSON('products', products);
+        // neznámé kategorie z importu přidat do nastavení
+        const s = await loadSettings();
+        const have = new Set(s.categories.map(c => c.toLowerCase()));
+        const extra = [...new Set(products.map(p => p.category).filter(c => c && !have.has(c.toLowerCase())))];
+        if (extra.length) { s.categories = [...s.categories, ...extra]; await store().setJSON('settings', s); }
+        return json({ ok: true, added, updated, newCategories: extra });
+      }
+
+      // hromadné úpravy vybraného zboží
+      case '/admin/bulk': {
+        const ids = new Set(Array.isArray(body.ids) ? body.ids : []);
+        if (!ids.size) return fail('Nic není vybráno.');
+        const op = body.op;
+        const now = new Date().toISOString();
+        let n = 0, skipped = 0;
+        if (op === 'delete') {
+          for (const p of products.filter(p => ids.has(p.id))) { await deleteImage(p.image); n++; }
+          products = products.filter(p => !ids.has(p.id));
+        } else {
+          const pct = Number(String(body.percent ?? '').replace(',', '.'));
+          if (op === 'discount' && !(pct > 0 && pct < 100)) return fail('Sleva musí být mezi 1 a 99 %.');
+          for (const p of products) {
+            if (!ids.has(p.id)) continue;
+            if (op === 'discount') {
+              if (!p.price) { skipped++; continue; }
+              p.sale_price = Math.round(p.price * (1 - pct / 100)); // zaokrouhleno na celé Kč
+              p.sale_from = date(body.sale_from);
+              p.sale_to = date(body.sale_to);
+            } else if (op === 'endsale') endSale(p);
+            else if (op === 'hide') p.visible = false;
+            else if (op === 'show') p.visible = true;
+            else if (op === 'category') { p.category = str(body.category, 80); }
+            else return fail('Neznámá operace.');
+            p.updated = now; n++;
+          }
+        }
+        await store().setJSON('products', products);
+        return json({ ok: true, count: n, skipped });
+      }
+
+      // přiřazení fotky (hromadné nahrávání fotek)
+      case '/admin/image': {
+        if (idx < 0) return fail('Zboží nenalezeno.', 404);
+        const key = await saveImage(body.image);
+        await deleteImage(products[idx].image);
+        products[idx].image = key;
+        products[idx].updated = new Date().toISOString();
+        await store().setJSON('products', products);
+        return json({ ok: true });
       }
 
       case '/admin/toggle':

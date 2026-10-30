@@ -69,7 +69,7 @@ function card(p, today) {
   if (sale) {
     prices = `<span class="price">${priceFmt(p.sale_price)}</span>${unit}`
       + (p.price ? `<span class="old">${priceFmt(p.price)}</span>` : '')
-      + (p.sale_to ? `<span class="valid">platí do ${dateCz(p.sale_to)}</span>` : '');
+      + `<span class="valid">${p.sale_to ? 'platí do ' + dateCz(p.sale_to) : 'do vyprodání zásob'}</span>`;
   } else if (p.price) {
     prices = `<span class="price">${priceFmt(p.price)}</span>${unit}`;
   } else {

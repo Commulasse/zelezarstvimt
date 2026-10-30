@@ -1,0 +1,63 @@
+ŽELEZÁŘSTVÍ MT – web pro Netlify
+================================
+
+Veřejný web je čisté HTML. Administrace (/admin) ukládá zboží, fotky a nastavení
+přes Netlify Functions do úložiště Netlify Blobs. Databáze ani jiný hosting nejsou potřeba.
+
+!!! DŮLEŽITÉ: Přetažení ZIPu / složky do Netlify (Netlify Drop) nasadí jen statické
+!!! stránky – administrace pak NEUKLÁDÁ (funkce se tímto způsobem nenasadí).
+!!! Použijte jeden ze dvou způsobů níže. Oba jsou zdarma.
+
+
+ZPŮSOB A – Netlify CLI (z počítače, cca 5 minut)
+------------------------------------------------
+Potřebujete Node.js 18+ (https://nodejs.org).
+
+1. Rozbalte ZIP, otevřete ve složce příkazový řádek a spusťte:
+     npm install
+     npx netlify login              (otevře prohlížeč, přihlaste se do Netlify)
+     npx netlify init               (vyberte "Create & configure a new project")
+2. Nastavte heslo do administrace:
+     npx netlify env:set ADMIN_PASSWORD "VaseSilneHeslo"
+3. Nasaďte:
+     npx netlify deploy --prod --build
+
+Další úpravy webu nasadíte znovu příkazem z bodu 3.
+
+
+ZPŮSOB B – přes GitHub (bez příkazové řádky)
+--------------------------------------------
+1. Na github.com založte nový repozitář a nahrajte do něj obsah ZIPu
+   (Add file → Upload files; složku node_modules nenahrávejte).
+2. V Netlify: Add new project → Import an existing project → GitHub → vyberte repozitář.
+   Nastavení buildu se načte samo z netlify.toml → Deploy.
+3. Project configuration → Environment variables → Add variable:
+     Key: ADMIN_PASSWORD   Value: vaše heslo
+4. Deploys → Trigger deploy → Deploy project (aby se heslo načetlo).
+
+Každá změna v repozitáři se pak nasadí automaticky.
+
+
+PO NASAZENÍ
+-----------
+- Web:            https://<nazev>.netlify.app
+- Administrace:   https://<nazev>.netlify.app/admin/
+- Vlastní doménu (např. zelezarstvimt.cz) přidáte v Domain management.
+
+ADMINISTRACE
+- Zboží: akční zboží / zboží do katalogu, fotka (i přímo z mobilu – sama se zmenší),
+  běžná a akční cena, platnost akce od–do. Po skončení akce zmizí zboží z akcí samo.
+  Rychlé akce: Ukončit akci, Skrýt/Zobrazit, Smazat.
+- Nastavení: žlutý pruh s oznámením, otevírací doba, kategorie, kontakty.
+- Změna hesla: změňte proměnnou ADMIN_PASSWORD v Netlify a spusťte nový deploy.
+  Tím se zároveň odhlásí všechna zařízení. Přihlášení jinak vydrží 30 dní.
+
+DATA
+- Zboží, nastavení a fotky jsou v Netlify Blobs (Project → Blobs). Při novém
+  nasazení webu se nemažou.
+
+STRUKTURA
+  public/                  web (index.html), administrace (admin/), styly, skripty, písma
+  netlify/functions/api.mjs serverová část (data, přihlášení, fotky)
+  netlify.toml             nastavení pro Netlify
+  package.json             závislost @netlify/blobs

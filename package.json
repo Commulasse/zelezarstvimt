@@ -1,0 +1,14 @@
+{
+  "name": "zelezarstvi-mt",
+  "version": "1.0.0",
+  "description": "Web Železářství MT s administrací (Netlify)",
+  "scripts": {
+    "dev": "netlify dev",
+    "deploy": "netlify deploy --prod"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^11.1.7"
+  },
+  "private": true,
+  "type": "module"
+}

@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Železářství MT – železářství v Moravské Třebové</title>
+<meta name="description" content="Železářství MT, Lanškrounská 260/47, Moravská Třebová. Nářadí, spojovací materiál, kování, zahrada, domácí potřeby. Aktuální akční nabídka.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><path fill='%23d9471b' d='M16 1l13 7.5v15L16 31 3 23.5v-15z'/><circle cx='16' cy='16' r='6' fill='%23fff'/></svg>">
+<link rel="preload" href="/assets/fonts/barlow-condensed-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HardwareStore","name":"Železářství MT","telephone":"+420 461 311 790","email":"zelezarstvi.mt@tiscali.cz","address":{"@type":"PostalAddress","streetAddress":"Lanškrounská 260/47","postalCode":"57101","addressLocality":"Moravská Třebová","addressCountry":"CZ"},"geo":{"@type":"GeoCoordinates","latitude":49.761389,"longitude":16.664604}}</script>
+</head>
+<body>
+
+<div class="notice" id="notice" hidden></div>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#">
+      <svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><path fill="#d9471b" d="M16 1l13 7.5v15L16 31 3 23.5v-15z"/><circle cx="16" cy="16" r="6" fill="#2a2d31"/></svg>
+      Železářství <b>MT</b>
+    </a>
+    <nav class="nav">
+      <a href="#akce">Akce</a>
+      <a href="#katalog" id="navKat">Zboží</a>
+      <a href="#sortiment">Sortiment</a>
+      <a href="#kontakt">Kontakt</a>
+    </nav>
+    <a class="call" data-tel href="tel:+420461311790">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z"/></svg>
+      <span data-s="phone">+420 461 311 790</span>
+    </a>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="wrap">
+    <div>
+      <span class="eyebrow">Moravská Třebová · od roku <span data-s="since">1991</span></span>
+      <h1>Železářství <span>MT</span></h1>
+      <p class="lead" data-s="tagline">Nářadí, spojovací materiál, kování, zahrada i domácnost. Co nemáme skladem, rádi objednáme.</p>
+      <div class="cta">
+        <a class="btn btn-accent" href="#akce">Aktuální akce</a>
+        <a class="btn btn-ghost" href="#kontakt">Kde nás najdete</a>
+      </div>
+    </div>
+    <aside class="today" aria-label="Dnes">
+      <div class="status" id="status"><i></i><span>Otevírací doba</span></div>
+      <div class="row"><span id="todayLabel">Dnes</span><span id="todayHours">—</span></div>
+      <div class="row"><span>Adresa</span><span data-s="street">Lanškrounská 260/47</span></div>
+      <div class="row"><span>Telefon</span><a data-tel href="tel:+420461311790" data-s="phone">+420 461 311 790</a></div>
+    </aside>
+  </div>
+</div>
+
+<main>
+
+<section id="akce" class="sale">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><span class="eyebrow">Akční nabídka</span><h2>Zboží v akci</h2></div>
+      <p>Akce platí do vyprodání zásob nebo do uvedeného data. Zboží vám rádi odložíme po telefonu.</p>
+    </div>
+    <div class="grid" id="saleGrid"></div>
+    <div class="empty" id="saleEmpty" hidden>Novou akční nabídku právě připravujeme. Zastavte se na prodejně nebo nám zavolejte.</div>
+  </div>
+</section>
+
+<section id="katalog" class="bg-alt" hidden>
+  <div class="wrap">
+    <div class="sec-head">
+      <div><span class="eyebrow">Katalog</span><h2>Vybrané zboží</h2></div>
+      <p>Ukázka z toho, co máme na prodejně. Celý sortiment je mnohem širší.</p>
+    </div>
+    <div class="filters" role="group" aria-label="Filtr kategorií" id="filters">
+      <label class="search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+        <input type="search" id="q" placeholder="Hledat zboží…" aria-label="Hledat zboží">
+      </label>
+    </div>
+    <div class="grid" id="catalog"></div>
+    <div class="empty" id="nores" hidden>Nic jsme nenašli. Zkuste jiné slovo – nebo se zeptejte na prodejně.</div>
+    <p class="note">Ceny jsou uvedeny včetně DPH a mají informativní charakter. Dostupnost si prosím ověřte telefonicky.</p>
+  </div>
+</section>
+
+<section id="sortiment">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><span class="eyebrow">Co u nás seženete</span><h2>Sortiment</h2></div>
+      <p>Pro domácnost, dílnu, stavbu i zahradu. Když něco nemáme, objednáme.</p>
+    </div>
+    <div class="range">
+      <div><h3>Nářadí</h3><p>Ruční nářadí pro dílnu i stavbu, elektrické vrtačky, brusky a rozbrušovačky.</p></div>
+      <div><h3>Spojovací materiál</h3><p>Šrouby, vruty, matice, podložky, hmoždinky, hřebíky – i na kusy.</p></div>
+      <div><h3>Kování a zámky</h3><p>Nábytkové a stavební kování, zámky, vložky, panty a závěsy.</p></div>
+      <div><h3>Brusivo</h3><p>Brusné, řezné a lamelové kotouče, brusné papíry.</p></div>
+      <div><h3>Stavební chemie</h3><p>Silikony, akryly, montážní pěny, lepidla a tmely.</p></div>
+      <div><h3>Kamna a kouřovody</h3><p>Kamna na tuhá paliva, kotle, bojlery, kouřové roury, kolena a zděře.</p></div>
+      <div><h3>Zahrada</h3><p>Zahradní nářadí, hadice, pletiva a potřeby pro práci venku.</p></div>
+      <div><h3>Domácí potřeby</h3><p>Nádobí, příbory, sklo, porcelán a drobnosti do domácnosti.</p></div>
+      <div><h3>Elektro a instalace</h3><p>Elektroinstalační a instalatérský materiál pro běžné opravy.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="kontakt" class="bg-alt">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><span class="eyebrow">Přijďte se podívat</span><h2>Kontakt a otevírací doba</h2></div>
+    </div>
+    <div class="contact">
+      <div class="panel">
+        <h3>Otevírací doba</h3>
+        <table class="hours" id="hours"></table>
+      </div>
+      <div class="panel">
+        <h3>Prodejna</h3>
+        <dl class="dl">
+          <dt>Adresa</dt><dd><span data-s="street">Lanškrounská 260/47</span><br><span data-s="city">571 01 Moravská Třebová</span></dd>
+          <dt>Telefon</dt><dd><a data-tel href="tel:+420461311790" data-s="phone">+420 461 311 790</a><span id="phone2"></span></dd>
+          <dt>E-mail</dt><dd><a id="mail" href="mailto:zelezarstvi.mt@tiscali.cz" data-s="email">zelezarstvi.mt@tiscali.cz</a></dd>
+          <dt>Provozovatel</dt><dd data-s="owner">Norbert Budig</dd>
+          <dt>IČO</dt><dd data-s="ico">18882528</dd>
+        </dl>
+        <p style="margin:22px 0 0"><a class="btn btn-accent" id="navi" target="_blank" rel="noopener" href="https://mapy.com/fnc/v1/route?end=16.664604,49.761389">Navigovat na prodejnu</a></p>
+      </div>
+    </div>
+    <div class="map">
+      <iframe id="map" title="Mapa prodejny" loading="lazy"
+        src="https://www.openstreetmap.org/export/embed.html?bbox=16.6586%2C49.7589%2C16.6706%2C49.7639&amp;layer=mapnik&amp;marker=49.761389%2C16.664604"></iframe>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span id="foot1">© Železářství MT · Norbert Budig · IČO 18882528</span>
+    <span id="foot2">Lanškrounská 260/47, 571 01 Moravská Třebová</span>
+  </div>
+</footer>
+
+<dialog id="dlg">
+  <button class="close" type="button" aria-label="Zavřít">×</button>
+  <div class="dlg">
+    <div class="img" id="dImg"></div>
+    <div class="txt">
+      <span id="dCat" style="font:600 13px/1 var(--head);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)"></span>
+      <h3 id="dName"></h3>
+      <div id="dPrice" style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap"></div>
+      <p id="dDesc"></p>
+      <a class="btn btn-accent" data-tel style="margin-top:auto;align-self:start" href="tel:+420461311790">Zavolat a odložit</a>
+    </div>
+  </div>
+</dialog>
+
+<script type="module" src="/assets/app.js"></script>
+</body>
+</html>
